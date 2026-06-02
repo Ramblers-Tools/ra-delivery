@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="search" type="text" description="COM_RA_DELIVERY_SEARCH_FILTER_SUBMIT"
+         label="COM_RA_DELIVERY_FILTER_SEARCH_LABEL"
+               class="js-stools-search-string" />
+
+     <field name="event_type"
+         type="list"
+         label="COM_RA_DELIVERY_FILTER_EVENT_TYPE"
+         description="COM_RA_DELIVERY_FILTER_EVENT_TYPE_DESC"
+               onchange="this.form.submit();"
+        >
+         <option value="">JOPTION_SELECT_FILTER</option>
+         <option value="processed">Processed</option>
+         <option value="soft-bounced">Soft bounced</option>
+         <option value="hard-bounced">Hard bounced</option>
+         <option value="rejected">Rejected</option>
+         <option value="spam">Spam</option>
+         <option value="delivered">Delivered</option>
+         <option value="opened">Opened</option>
+         <option value="clicked">Clicked</option>
+        </field>
+
+    </fields>
+
+    <fields name="list">
+
+        <field name="fullordering"
+               type="list"
+               label="COM_RA_DELIVERY_LIST_FULL_ORDERING"
+               description="COM_RA_DELIVERY_LIST_FULL_ORDERING_DESC"
+               onchange="this.form.submit();"
+               default="a.id DESC"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.event_date_utc DESC">COM_RA_DELIVERY_EVENT_DATE_DESC</option>
+            <option value="a.event_date_utc ASC">COM_RA_DELIVERY_EVENT_DATE_ASC</option>
+            <option value="a.event_type ASC">COM_RA_DELIVERY_EVENT_TYPE_ASC</option>
+            <option value="a.event_type DESC">COM_RA_DELIVERY_EVENT_TYPE_DESC</option>
+            <option value="a.recipient ASC">COM_RA_DELIVERY_RECIPIENT_ASC</option>
+            <option value="a.recipient DESC">COM_RA_DELIVERY_RECIPIENT_DESC</option>
+            <option value="a.sender ASC">COM_RA_DELIVERY_SENDER_ASC</option>
+            <option value="a.sender DESC">COM_RA_DELIVERY_SENDER_DESC</option>
+            <option value="a.subject ASC">COM_RA_DELIVERY_SUBJECT_ASC</option>
+            <option value="a.subject DESC">COM_RA_DELIVERY_SUBJECT_DESC</option>
+            <option value="a.email_id ASC">COM_RA_DELIVERY_EMAIL_ID_ASC</option>
+            <option value="a.email_id DESC">COM_RA_DELIVERY_EMAIL_ID_DESC</option>
+            <option value="a.api_site_id ASC">COM_RA_DELIVERY_API_SITE_ID_ASC</option>
+            <option value="a.api_site_id DESC">COM_RA_DELIVERY_API_SITE_ID_DESC</option>
+
+        </field>
+
+       <field name="limit"
+               type="limitbox"
+               label="COM_RA_DELIVERY_LIST_LIMIT"
+               description="COM_RA_DELIVERY_LIST_LIMIT_DESC"
+               class="input-mini"
+               default="25"
+               onchange="this.form.submit();"
+        />
+
+    </fields>
+
+</form>

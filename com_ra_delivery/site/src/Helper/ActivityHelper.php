@@ -12,6 +12,11 @@ use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 class ActivityHelper
 {
     private const WATERMARK_RECORD_TYPE = 2;
+    private const LOG_SUB_SYSTEM = 'RA Delivery';
+    private const LOG_RECORD_TYPE = '1';
+    private const INSERTED = 'inserted';
+    private const DUPLICATE = 'duplicate';
+    private const FAILED = 'failed';
 
     private $db;
     private $messages = array();
@@ -53,35 +58,59 @@ class ActivityHelper
         $startDate = $this->calculateStartDate($lookbackMinutes);
         $endDate = gmdate('Y-m-d\TH:i:s\Z');
         $continueToken = '';
-        $stats = array('inserted' => 0, 'duplicates' => 0, 'pages' => 0, 'events' => 0);
+        $stats = array('inserted' => 0, 'duplicates' => 0, 'failed' => 0, 'pages' => 0, 'events' => 0);
 
         $this->messages[] = 'Polling SMTP2GO activity from ' . $startDate . ' to ' . $endDate;
+        $this->logMessage('Starting activity poll from ' . $startDate . ' to ' . $endDate . ' for api site ' . $apiSiteId, (string) $apiSiteId);
 
         do {
             $result = $this->service->searchActivity($apiSiteId, $startDate, $endDate, $eventTypes, $pageLimit, $continueToken);
 
             if ($result === false) {
                 $this->messages[] = 'Polling failed: ' . $this->service->getLastError();
+                $this->logMessage('Polling failed: ' . $this->service->getLastError(), (string) $apiSiteId);
                 return false;
             }
 
             $stats['pages']++;
             $events = $result['events'];
             $stats['events'] += count($events);
+            $this->messages[] = 'Fetched page ' . $stats['pages'] . ' with ' . count($events) . ' events'
+                . ($result['request_id'] !== '' ? ' (request ' . $result['request_id'] . ')' : '');
+            $this->logMessage(
+                'Fetched page ' . $stats['pages'] . ' with ' . count($events) . ' events'
+                . ($result['request_id'] !== '' ? ' (request ' . $result['request_id'] . ')' : ''),
+                (string) $apiSiteId
+            );
 
             foreach ($events as $event) {
-                if ($this->storeEvent($apiSiteId, $event)) {
+                $storeResult = $this->storeEvent($apiSiteId, $event);
+
+                if ($storeResult === self::INSERTED) {
                     $stats['inserted']++;
-                } else {
+                } elseif ($storeResult === self::DUPLICATE) {
                     $stats['duplicates']++;
+                } else {
+                    $stats['failed']++;
                 }
             }
 
             $continueToken = $result['continue_token'];
         } while ($continueToken !== '');
 
+        if ($stats['failed'] > 0) {
+            $this->messages[] = 'Polling completed with ' . $stats['failed'] . ' storage failures; watermark not advanced';
+            $this->logMessage('Polling completed with ' . $stats['failed'] . ' storage failures; watermark not advanced', (string) $apiSiteId);
+            return false;
+        }
+
         $this->storeWatermark($endDate);
         $this->messages[] = 'Polling complete: ' . $stats['inserted'] . ' inserted, ' . $stats['duplicates'] . ' duplicates';
+        $this->messages[] = 'Watermark updated to ' . $endDate;
+        $this->logMessage(
+            'Polling complete: ' . $stats['inserted'] . ' inserted, ' . $stats['duplicates'] . ' duplicates, watermark updated to ' . $endDate,
+            (string) $apiSiteId
+        );
 
         return $stats;
     }
@@ -172,9 +201,21 @@ class ActivityHelper
         try {
             $this->db->setQuery($query);
             $this->db->execute();
-            return true;
+            return self::INSERTED;
         } catch (\RuntimeException $exception) {
-            return false;
+            if ((int) $exception->getCode() === 1062 || strpos($exception->getMessage(), 'Duplicate entry') !== false) {
+                return self::DUPLICATE;
+            }
+
+            $this->messages[] = 'Failed to store event for email id '
+                . (string) ($event['email_id'] ?? '')
+                . ': ' . $exception->getMessage();
+            $this->logMessage(
+                'Failed to store event for email id ' . (string) ($event['email_id'] ?? '') . ': ' . $exception->getMessage(),
+                (string) $apiSiteId
+            );
+
+            return self::FAILED;
         }
     }
 
@@ -199,5 +240,10 @@ class ActivityHelper
         }
 
         return gmdate('Y-m-d H:i:s', $timestamp);
+    }
+
+    private function logMessage($message, $ref = '0')
+    {
+        $this->toolsHelper->createLog(self::LOG_SUB_SYSTEM, self::LOG_RECORD_TYPE, $ref, $message);
     }
 }

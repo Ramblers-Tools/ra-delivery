@@ -1,0 +1,2 @@
+-- Schema baseline for com_ra_delivery 0.1.0.
+-- Initial table creation is handled by sql/install.mysql.utf8.sql on first install.

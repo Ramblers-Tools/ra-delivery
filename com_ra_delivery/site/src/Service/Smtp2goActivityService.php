@@ -102,7 +102,23 @@ class Smtp2goActivityService
         curl_close($curl);
 
         if ($responseData === false || $httpCode !== 200) {
-            $this->lastError = 'HTTP ' . $httpCode . ': ' . $error;
+            $responseSummary = '';
+
+            if (is_string($responseData) && trim($responseData) !== '') {
+                $decodedError = json_decode($responseData, true);
+
+                if (is_array($decodedError)) {
+                    $requestId = (string) ($decodedError['request_id'] ?? '');
+                    $errorMessage = (string) ($decodedError['data']['error'] ?? '');
+                    $errorCode = (string) ($decodedError['data']['error_code'] ?? '');
+                    $responseSummary = trim($requestId . ' ' . $errorCode . ' ' . $errorMessage);
+                } else {
+                    $responseSummary = trim(substr($responseData, 0, 300));
+                }
+            }
+
+            $this->lastError = 'HTTP ' . $httpCode . ': ' . $error
+                . ($responseSummary !== '' ? ' | ' . $responseSummary : '');
             return false;
         }
 

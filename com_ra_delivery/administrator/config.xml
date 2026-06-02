@@ -11,11 +11,14 @@
         </field>
         <field
             name="smtp2go_api_site_id"
-            type="number"
-            label="SMTP2GO API site id"
-            description="Record id in #__ra_api_sites used for SMTP2GO activity polling"
+            type="sql"
+            label="SMTP2GO API site"
+            description="Select the #__ra_api_sites record used for SMTP2GO activity polling"
+            query="SELECT id AS value, CONCAT(title, ' (', id, ')') AS text FROM #__ra_api_sites ORDER BY title"
+            key_field="value"
+            value_field="text"
             default="0"
-            min="0"
+            header="Select API site"
         />
         <field
             name="lookback_minutes"

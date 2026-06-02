@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Ramblers\Component\Ra_delivery\Administrator\Field">
+  <fieldset>
+    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="provider_name" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_PROVIDER_NAME"/>
+    <field name="api_site_id" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_API_SITE_ID"/>
+    <field name="email_id" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_EMAIL_ID"/>
+    <field name="event_type" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_EVENT_TYPE"/>
+    <field name="event_date_utc" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_EVENT_DATE_UTC"/>
+    <field name="recipient" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_RECIPIENT"/>
+    <field name="sender" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_SENDER"/>
+    <field name="subject" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_SUBJECT"/>
+    <field name="smtp_response" type="textarea" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_SMTP_RESPONSE"/>
+    <field name="username" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_USERNAME"/>
+    <field name="subaccount_name" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_SUBACCOUNT_NAME"/>
+    <field name="host" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_HOST"/>
+    <field name="outbound_ip" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_OUTBOUND_IP"/>
+    <field name="byte_size" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_BYTE_SIZE"/>
+    <field name="fetched_at" type="text" readonly="true" label="COM_RA_DELIVERY_FORM_LBL_DELIVERYEVENT_FETCHED_AT"/>
+  </fieldset>
+</form>
