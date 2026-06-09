@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.0
  * @package    com_ra_delivery
@@ -25,9 +26,6 @@ use Joomla\Utilities\ArrayHelper;
  *
  * @since  1.0.0
  */
-class ReportsController extends AdminController
-{
-
-
+class ReportsController extends AdminController {
 
 }

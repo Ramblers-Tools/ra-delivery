@@ -6,7 +6,7 @@
     <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
     <author>Charlie Bigley</author>
     <authorEmail>charlie@bigley.me.uk</authorEmail>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <description>RA Delivery</description>
     <namespace path="src">Ramblers\Component\Ra_delivery</namespace>
     <scriptfile>script.php</scriptfile>

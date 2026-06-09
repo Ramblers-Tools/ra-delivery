@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.0
+ * @version    1.0.0
  * @package    Com_Anand
  * @author     Super User <dev@component-creator.com>
  * @copyright  2023 Super User
@@ -13,6 +13,12 @@ defined('_JEXEC') or die;
 use \Joomla\CMS\HTML\HTMLHelper;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
+use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
+
+$wa = $this->document->getWebAssetManager();
+$wa->registerAndUseStyle('ramblers', 'com_ra_tools/ramblers.css');
+
+$toolsHelper = new ToolsHelper;
 
 ?>
 
@@ -38,7 +44,8 @@ use \Joomla\CMS\Language\Text;
 
 	</table>
 
-	<p><a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_ra_delivery&view=deliveryevents'); ?>"><?php echo Text::_('JBACK'); ?></a></p>
+	<p>
+	<?php echo $toolsHelper->backButton('administrator/index.php?option=com_ra_delivery&view=deliveryevents'); ?></p>
 
 </div>
 

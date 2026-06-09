@@ -7,25 +7,22 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
-class Smtp2goActivityService
-{
+class Smtp2goActivityService {
+
     private $db;
     private $lastError = '';
     private $toolsHelper;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->db = Factory::getDbo();
         $this->toolsHelper = new ToolsHelper();
     }
 
-    public function getLastError()
-    {
+    public function getLastError() {
         return $this->lastError;
     }
 
-    public function searchActivity($apiSiteId, $startDate, $endDate, array $eventTypes, $limit, $continueToken = '')
-    {
+    public function searchActivity($apiSiteId, $startDate, $endDate, array $eventTypes, $limit, $continueToken = '') {
         $site = $this->loadApiSite((int) $apiSiteId);
 
         if ($site === null) {
@@ -52,6 +49,9 @@ class Smtp2goActivityService
         );
 
         $endpoint = rtrim((string) $site->url, '/') . '/v3/activity/search';
+//        if (1) {
+//            $endpoint .= '?subdomain=walsall';
+//        }
         $response = $this->postJson($endpoint, $headers, $payload);
 
         if ($response === false) {
@@ -65,20 +65,18 @@ class Smtp2goActivityService
         );
     }
 
-    private function loadApiSite($apiSiteId)
-    {
+    private function loadApiSite($apiSiteId) {
         $query = $this->db->getQuery(true)
-            ->select('*')
-            ->from($this->db->quoteName('#__ra_api_sites'))
-            ->where($this->db->quoteName('id') . ' = ' . (int) $apiSiteId);
+                ->select('*')
+                ->from($this->db->quoteName('#__ra_api_sites'))
+                ->where($this->db->quoteName('id') . ' = ' . (int) $apiSiteId);
 
         $this->db->setQuery($query);
 
         return $this->db->loadObject();
     }
 
-    private function postJson($url, array $headers, array $payload)
-    {
+    private function postJson($url, array $headers, array $payload) {
         $max = 5 * 60;
         $curl = curl_init();
         curl_setopt_array($curl, array(
@@ -118,7 +116,7 @@ class Smtp2goActivityService
             }
 
             $this->lastError = 'HTTP ' . $httpCode . ': ' . $error
-                . ($responseSummary !== '' ? ' | ' . $responseSummary : '');
+                    . ($responseSummary !== '' ? ' | ' . $responseSummary : '');
             return false;
         }
 
@@ -131,4 +129,5 @@ class Smtp2goActivityService
 
         return $decoded;
     }
+
 }

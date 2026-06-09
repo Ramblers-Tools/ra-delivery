@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
-    <fieldset name="phase1" label="Phase 1 Delivery Polling">
+    <fieldset name="phase1" label="Polling for email delivery details">
+        <field 
+            name="note1" 
+            type="note" 
+            label="You must set up a scheduled Task: php joomla.php ra_dlivery:pollactivity"
+        />
         <field
             name="polling_enabled"
             type="radio"
@@ -14,12 +19,35 @@
             type="sql"
             label="SMTP2GO API site"
             description="Select the #__ra_api_sites record used for SMTP2GO activity polling"
-            query="SELECT id AS value, CONCAT(title, ' (', id, ')') AS text FROM #__ra_api_sites ORDER BY title"
+            query="SELECT id AS value, CONCAT(title, ' (', id, ')') AS text FROM #__ra_api_sites WHERE state=1 ORDER BY title"
             key_field="value"
             value_field="text"
             default="0"
             header="Select API site"
         />
+        <field
+            name="subdomain"
+            type="text"
+            label="Sender subdomain filter"
+            description="Optional substring filter applied to the sender value before events are stored"
+            default=""
+        />
+
+        <field
+            name="event_types"
+            type="checkboxes"
+            label="Monitored event types"
+            description="Select SMTP2GO activity events to ingest. Unsubscribe and resubscribe events are intentionally excluded."
+            default="soft-bounced,hard-bounced,rejected,spam">
+            <option value="processed">Processed</option>
+            <option value="soft-bounced">Soft bounced</option>
+            <option value="hard-bounced">Hard bounced</option>
+            <option value="rejected">Rejected</option>
+            <option value="spam">Spam</option>
+            <option value="delivered">Delivered</option>
+            <option value="opened">Opened</option>
+            <option value="clicked">Clicked</option>
+        </field>
         <field
             name="lookback_minutes"
             type="number"
@@ -37,21 +65,16 @@
             min="1"
             max="1000"
         />
-        <field
-            name="event_types"
-            type="checkboxes"
-            label="Monitored event types"
-            description="Select SMTP2GO activity events to ingest. Unsubscribe and resubscribe events are intentionally excluded."
-            default="soft-bounced,hard-bounced,rejected,spam">
-            <option value="processed">Processed</option>
-            <option value="soft-bounced">Soft bounced</option>
-            <option value="hard-bounced">Hard bounced</option>
-            <option value="rejected">Rejected</option>
-            <option value="spam">Spam</option>
-            <option value="delivered">Delivered</option>
-            <option value="opened">Opened</option>
-            <option value="clicked">Clicked</option>
-        </field>
+    </fieldset>
+    <fieldset name="phase1" label="Post processing"> 
+         <field
+            name="tidy_up_days"
+            type="number"
+            label="Tidy-up retention days"
+            description="Optional retention period. After polling completes, stored event rows older than this many days will be deleted"
+            default="30"
+            min="0"
+        />   
     </fieldset>
     <fieldset
         name="permissions"

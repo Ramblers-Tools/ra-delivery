@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.0
  * @package    com_ra_delivery
@@ -8,6 +9,7 @@
  */
 
 namespace Ramblers\Component\Ra_delivery\Administrator\View\Deliveryevent;
+
 // No direct access
 defined('_JEXEC') or die;
 
@@ -20,48 +22,44 @@ use \Joomla\CMS\Language\Text;
  *
  * @since  1.0.0
  */
-class HtmlView extends BaseHtmlView
-{
-	protected $state;
+class HtmlView extends BaseHtmlView {
 
-	protected $item;
+    protected $state;
+    protected $item;
+    protected $form;
 
-	protected $form;
+    /**
+     * Display the view
+     *
+     * @param   string  $tpl  Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null) {
+        $this->state = $this->get('State');
+        $this->item = $this->get('Item');
+        $this->form = $this->get('Form');
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function display($tpl = null)
-	{
-		$this->state = $this->get('State');
-		$this->item  = $this->get('Item');
-		$this->form  = $this->get('Form');
+        // Check for errors.
+        if (count($errors = $this->get('Errors'))) {
+            throw new \Exception(implode("\n", $errors));
+        }
+        $this->addToolbar();
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
-				$this->addToolbar();
-		
-		parent::display($tpl);
-	}
+        parent::display($tpl);
+    }
 
-	/**
-	 * Add the page title and toolbar.
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	protected function addToolbar()
-	{
-		ToolbarHelper::title(Text::_('COM_RA_DELIVERY_TITLE_DELIVERYEVENT'), "generic");
-	}
+    /**
+     * Add the page title and toolbar.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function addToolbar() {
+        ToolbarHelper::title(Text::_('COM_RA_DELIVERY_TITLE_DELIVERYEVENT'), "generic");
+    }
+
 }

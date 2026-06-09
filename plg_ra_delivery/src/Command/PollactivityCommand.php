@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * @version    1.0.0
+ * @package    plg_ra_delivery
+ * @author     Charlie Bigley <charlie@bigley.me.uk>
+ * @copyright  2026 Charlie Bigley
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
 namespace Ramblers\Plugin\Console\Ra_delivery\Command;
 
 defined('JPATH_PLATFORM') or die;
@@ -10,31 +18,28 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class PollactivityCommand extends AbstractCommand
-{
-    protected static $defaultName = 'ra_delivery:pollactivity';
+class PollactivityCommand extends AbstractCommand {
 
+    protected static $defaultName = 'ra_delivery:pollactivity';
     private $helper;
     private $ioStyle;
 
-    public function __construct()
-    {
+    public function __construct() {
         parent::__construct();
         $this->helper = new ActivityHelper();
     }
 
-    protected function configure(): void
-    {
+    protected function configure(): void {
         $help = "<info>%command.name%</info> Poll provider activity\n"
-            . "Usage: <info>php %command.full_name%</info>\n"
-            . "Fetches configured SMTP2GO activity events and stores them locally.";
+                . "Usage: <info>php %command.full_name%</info>\n"
+                . "Fetches configured SMTP2GO activity events and stores them locally.\n\n"
+                . "Configuration is read from the com_ra_delivery component options, not from plugin parameters.";
 
         $this->setDescription('Poll SMTP2GO account activity');
         $this->setHelp($help);
     }
 
-    protected function doExecute(InputInterface $input, OutputInterface $output): int
-    {
+    protected function doExecute(InputInterface $input, OutputInterface $output): int {
         $this->ioStyle = new SymfonyStyle($input, $output);
         $this->ioStyle->comment('Starting delivery activity poll');
 
@@ -52,4 +57,5 @@ class PollactivityCommand extends AbstractCommand
         $this->ioStyle->success('Delivery activity poll complete');
         return 0;
     }
+
 }

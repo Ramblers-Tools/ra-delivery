@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.0
  * @package    com_ra_delivery
@@ -25,24 +26,25 @@ use Joomla\Utilities\ArrayHelper;
  *
  * @since  1.0.0
  */
-class DeliveryeventsController extends AdminController
-{
+class DeliveryeventsController extends AdminController {
 
-	/**
-	 * Proxy for getModel.
-	 *
-	 * @param   string  $name    Optional. Model name
-	 * @param   string  $prefix  Optional. Class prefix
-	 * @param   array   $config  Optional. Configuration array for model
-	 *
-	 * @return  object	The Model
-	 *
-	 * @since   1.0.0
-	 */
-	public function getModel($name = 'Deliveryevent', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
-	}
+    public function cancel($key = null, $urlVar = null) {
+        $this->setRedirect('index.php?option=com_ra_tools&view=dashboard');
+    }
 
-	
+    /**
+     * Proxy for getModel.
+     *
+     * @param   string  $name    Optional. Model name
+     * @param   string  $prefix  Optional. Class prefix
+     * @param   array   $config  Optional. Configuration array for model
+     *
+     * @return  object	The Model
+     *
+     * @since   1.0.0
+     */
+    public function getModel($name = 'Deliveryevent', $prefix = 'Administrator', $config = array()) {
+        return parent::getModel($name, $prefix, array('ignore_request' => true));
+    }
+
 }
