@@ -1,5 +1,12 @@
 <?php
-
+/**
+ * @version     1.0.6
+ * @package     com_ra_delivery
+ * @copyright   Copyright (C) 2020. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
+ * 06/07/26 CB Support sending of emails with Smtp2go API, using the new com_ra_delivery component
+ */
 namespace Ramblers\Component\Ra_delivery\Site\Service;
 
 defined('_JEXEC') or die;

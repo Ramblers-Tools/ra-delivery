@@ -50,7 +50,7 @@ class SmtpHelper {
     private function actionBounce($event) {
         $email = $event["recipient"];
         $details = '<tr>';
-        $details = '<td>' . HTMLHelper::_('date', $event["date"], 'D d/m/y H:i') . '</td>';
+        $details .= '<td>' . HTMLHelper::_('date', $event["date"], 'D d/m/y H:i') . '</td>';
         $reason = $event["event"];
         $details .= '<td>' . $reason . '</td>';
         $details .= '<td>' . $event['sender'] . '</td>';
