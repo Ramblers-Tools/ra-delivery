@@ -30,6 +30,7 @@ class SmtpHelper {
     private const INSERTED = 'inserted';
     private const DUPLICATE = 'duplicate';
     private const FAILED = 'failed';
+    private const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
     private $db;
     private $count = 0;
@@ -289,10 +290,31 @@ class SmtpHelper {
         }
 
         if (!empty($attachments)) {
-            // The documentation suggests attachments are objects with filename and fileblob
-            // This part may need adjustment depending on the format of $attachments
+            $payload['attachments'] = [];
+            foreach ((array) $attachments as $filePath) {
+                if (!is_string($filePath) || !is_file($filePath)) {
+                    $this->messages[] = 'Skipped attachment (not found): ' . $filePath;
+                    continue;
+                }
+
+                if (filesize($filePath) > self::MAX_ATTACHMENT_BYTES) {
+                    $this->messages[] = 'Skipped attachment (too large): ' . basename($filePath);
+                    continue;
+                }
+
+                $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+                $payload['attachments'][] = [
+                    'filename' => basename($filePath),
+                    'fileblob' => base64_encode(file_get_contents($filePath)),
+                    'mimetype' => $mime,
+                ];
+            }
+
+            if (empty($payload['attachments'])) {
+                unset($payload['attachments']);
+            }
         }
-        
+
         if (!empty($reply_to)) {
             $payload['custom_headers'] = [
                 [
