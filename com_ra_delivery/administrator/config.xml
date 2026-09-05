@@ -75,6 +75,21 @@
             default="30"
             min="0"
         />   
+    <field
+        name="contact_id"
+        type="sql"
+        label="Who is to be notified of exceptions"
+        query="
+            SELECT u.id AS value, c.name AS text
+            FROM #__users AS u
+            INNER JOIN #__contact_details AS c
+                ON c.user_id = u.id
+            UNION
+            SELECT 0, '--Select Contact --'
+            ORDER BY text"
+        key_field="value"
+        value_field="text"
+    />       
      <field name="notify_user"
         maxlength="80"
         filter="email"

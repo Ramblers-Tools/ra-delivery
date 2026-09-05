@@ -27,7 +27,7 @@ class PollactivityCommand extends AbstractCommand {
 
     public function __construct() {
         parent::__construct();
-        $this->helper = new SmtpHelper();
+        $this->helper = new SmtpHelper;
     }
 
     protected function configure(): void {

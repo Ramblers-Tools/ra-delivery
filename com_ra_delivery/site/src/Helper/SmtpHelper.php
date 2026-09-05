@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version     1.0.6
+ * @version     1.0.7
  * @package     com_ra_members
  * @copyright   Copyright (C) 2020. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
@@ -10,6 +10,7 @@
  * 23/06/26 CB Don't send blank report
  * 02/07/26 CB email report as table
  * 06/07/26 CB Renamed; apply subdomain filter on the API call, not after the fact
+ * 13/07/26 CN fix email report table
  */
 
 namespace Ramblers\Component\Ra_delivery\Site\Helper;
@@ -20,6 +21,8 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Factory;
 use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goActivityService;
+use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goClientFactory;
+use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goProvisioningService;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
 class SmtpHelper {
@@ -39,12 +42,49 @@ class SmtpHelper {
     private $messages = array();
     private $notify_user = '';
     private $service;
+    private $clientFactory;
     private $toolsHelper;
 
-    public function __construct() {
+    public function __construct(
+            ?Smtp2goActivityService $service = null,
+            ?Smtp2goClientFactory $clientFactory = null
+    ) {
         $this->db = Factory::getDbo();
         $this->toolsHelper = new ToolsHelper();
-        $this->service = new Smtp2goActivityService();
+        $this->clientFactory = $clientFactory ?? new Smtp2goClientFactory();
+        $this->service = $service ?? new Smtp2goActivityService($this->clientFactory);
+    }
+
+    private function getProvisioningService($apiSiteId) {
+        $client = $this->clientFactory->createForApiSite((int) $apiSiteId);
+
+        return new Smtp2goProvisioningService($client);
+    }
+
+    public function findSubaccount($apiSiteId, $name) {
+        return $this->getProvisioningService($apiSiteId)->findSubaccount((string) $name);
+    }
+
+    public function createSubaccount($apiSiteId, $name, $email, $limit) {
+        return $this->getProvisioningService($apiSiteId)->createSubaccount(
+                (string) $name,
+                (string) $email,
+                (int) $limit
+        );
+    }
+
+    public function createSubaccountApiKey($apiSiteId, $subaccountId, $description) {
+        return $this->getProvisioningService($apiSiteId)->createApiKey(
+                (string) $subaccountId,
+                (string) $description
+        );
+    }
+
+    public function registerSenderDomain($apiSiteId, $subaccountId, $hostname) {
+        return $this->getProvisioningService($apiSiteId)->registerSenderDomain(
+                (string) $subaccountId,
+                (string) $hostname
+        );
     }
 
     private function actionBounce($event) {
@@ -72,7 +112,7 @@ class SmtpHelper {
             $details .= 'No user found';
         }
         $details .= '</td>';
-        $details = '</tr>';
+        $details .= '</tr>';
         $this->email .= $details;
     }
 
