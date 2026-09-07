@@ -1,9 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
+    <fieldset name="sending" label="General">
+        <field
+            name="smtp2go_api_site_id"
+            type="sql"
+            label="SMTP2GO API site"
+            description="Select the #__ra_api_sites record used to connect to SMTP2GO"
+            query="SELECT id AS value, CONCAT(title, ' (', id, ')') AS text FROM #__ra_api_sites WHERE state=1 ORDER BY title"
+            key_field="value"
+            value_field="text"
+            default="0"
+            header="Select API site"
+        />
+        <field
+            name="smtp2go_subaccount_name"
+            type="text"
+            filter="string"
+            label="SMTP2GO sub-account name"
+            description="Name validated by Step 7 and awaiting final provisioning in Step 8"
+        />
+        <field
+            name="smtp2go_subaccount_id"
+            type="text"
+            filter="string"
+            readonly="true"
+            label="SMTP2GO sub-account ID"
+            description="Provider ID saved after successful provisioning in Step 8"
+        />
+        <field
+            name="smtp2go_sender_registration"
+            type="list"
+            filter="cmd"
+            default="domain"
+            label="SMTP2GO sender verification"
+            description="Sender verification method selected in Step 7 of the Installation Wizard">
+            <option value="email">Verified Single Sender Email</option>
+            <option value="domain">Verified Sender Domain</option>
+            <option value="both">Single Sender Email and Sender Domain</option>
+        </field>
+        <field name="sender_email"
+            maxlength="80"
+            filter="email"
+            type="email"
+            required="true"
+            label="Sending user"
+            description="Email address to be used as Sender"
+            hint="aaaa@ramblers.tools"
+    />
+    </fieldset>
     <fieldset name="phase1" label="Polling for email delivery details">
         <field 
             name="note1" 
             type="note" 
+            showon="polling_enabled:1"
             label="You must set up a scheduled Task: php joomla.php ra_delivery:pollactivity"
         />
         <field
@@ -14,24 +63,6 @@
             <option value="1">Yes</option>
             <option value="0">No</option>
         </field>
-        <field
-            name="smtp2go_api_site_id"
-            type="sql"
-            label="SMTP2GO API site"
-            description="Select the #__ra_api_sites record used for SMTP2GO activity polling"
-            query="SELECT id AS value, CONCAT(title, ' (', id, ')') AS text FROM #__ra_api_sites WHERE state=1 ORDER BY title"
-            key_field="value"
-            value_field="text"
-            default="0"
-            header="Select API site"
-        />
-        <field
-            name="subdomain"
-            type="text"
-            label="Sender subdomain filter"
-            description="Optional substring filter applied to the sender value before events are stored"
-            default=""
-        />
 
         <field
             name="event_types"
@@ -76,29 +107,17 @@
             min="0"
         />   
     <field
-        name="contact_id"
+        name="notify_user"
         type="sql"
+        filter="integer"
+        required="true"
         label="Who is to be notified of exceptions"
-        query="
-            SELECT u.id AS value, c.name AS text
-            FROM #__users AS u
-            INNER JOIN #__contact_details AS c
-                ON c.user_id = u.id
-            UNION
-            SELECT 0, '--Select Contact --'
-            ORDER BY text"
+        description="Joomla user to be notified of delivery exceptions"
+        query="SELECT u.id AS value, c.name AS text FROM #__users AS u INNER JOIN #__contact_details AS c ON c.user_id = u.id WHERE u.block = 0 AND c.published = 1 UNION SELECT 0, '--Select Contact --' ORDER BY text"
         key_field="value"
         value_field="text"
-    />       
-     <field name="notify_user"
-        maxlength="80"
-        filter="email"
-        type="email"
-        required="true"
-        label="Notify user"
-        description="Email address of User to be notified of exceptions"
-        hint="aaaa@bbbb.com"
-    /> 
+        default="0"
+    />
     </fieldset>
     <fieldset
         name="permissions"

@@ -39,11 +39,15 @@ class Smtp2goProvisioningService
                 && (string) ($subaccount['name'] ?? '') === $name
         ));
 
-        if (count($matches) > 1) {
-            throw new Smtp2goException('SMTP2GO returned multiple exact sub-account matches');
+        if ($matches !== []) {
+            return $matches[0];
         }
 
-        return $matches[0] ?? null;
+        if ($subaccounts !== []) {
+            throw new Smtp2goException('SMTP2GO returned an ambiguous sub-account search result');
+        }
+
+        return null;
     }
 
     public function createSubaccount(string $name, string $email, int $limit): array
@@ -63,7 +67,7 @@ class Smtp2goProvisioningService
             throw new Smtp2goException('The SMTP2GO sub-account email limit is invalid');
         }
 
-        return $this->client->post('/v3/subaccount/add', [
+        $response = $this->client->post('/v3/subaccount/add', [
             'fullname' => $name,
             'subaccount_email' => $email,
             'limit' => $limit,
@@ -72,6 +76,14 @@ class Smtp2goProvisioningService
             'enforce_2fa' => false,
             'enable_sms' => false,
         ]);
+
+        $subaccount = $response['data'] ?? null;
+
+        if (!is_array($subaccount) || trim((string) ($subaccount['id'] ?? '')) === '') {
+            throw new Smtp2goException('SMTP2GO did not return the new sub-account ID');
+        }
+
+        return $subaccount;
     }
 
     public function createApiKey(string $subaccountId, string $description): array
@@ -82,12 +94,22 @@ class Smtp2goProvisioningService
             throw new Smtp2goException('The SMTP2GO sub-account ID is empty');
         }
 
-        return $this->client->post('/v3/api_keys/add', [
+        $response = $this->client->post('/v3/api_keys/add', [
             'description' => trim($description),
             'status' => 'allowed',
             'endpoints' => ['/email/send', '/activity/search'],
             'subaccount_id' => $subaccountId,
         ]);
+
+        $data = $response['data'] ?? null;
+        $key = is_array($data) && array_is_list($data) ? ($data[0] ?? null) : $data;
+        $apiKey = is_array($key) ? trim((string) ($key['api_key'] ?? '')) : '';
+
+        if ($apiKey === '' || str_contains($apiKey, '*')) {
+            throw new Smtp2goException('SMTP2GO did not return an unmasked API key');
+        }
+
+        return $key;
     }
 
     public function registerSenderDomain(string $subaccountId, string $hostname): array
@@ -99,14 +121,100 @@ class Smtp2goProvisioningService
             throw new Smtp2goException('The SMTP2GO sub-account ID is empty');
         }
 
-        if (filter_var($hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
-            throw new Smtp2goException('The SMTP2GO sender-domain hostname is invalid');
+        if (filter_var($hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false
+            || filter_var($hostname, FILTER_VALIDATE_IP) !== false
+        ) {
+            throw new Smtp2goException(
+                'The SMTP2GO sender-domain hostname "' . $hostname . '" is not a valid DNS hostname'
+            );
         }
 
-        return $this->client->post('/v3/domain/add', [
+        $response = $this->client->post('/v3/domain/add', [
             'domain' => $hostname,
             'subaccount_id' => $subaccountId,
             'auto_verify' => false,
         ]);
+
+        $domains = $response['data']['domains'] ?? null;
+
+        if (!is_array($domains) || $domains === []) {
+            throw new Smtp2goException('SMTP2GO did not return sender-domain setup details');
+        }
+
+        return $domains;
+    }
+
+    public function registerSingleSenderEmail(string $subaccountId, string $emailAddress): array
+    {
+        $subaccountId = trim($subaccountId);
+        $emailAddress = trim($emailAddress);
+
+        if ($subaccountId === '') {
+            throw new Smtp2goException('The SMTP2GO sub-account ID is empty');
+        }
+
+        if (filter_var($emailAddress, FILTER_VALIDATE_EMAIL) === false) {
+            throw new Smtp2goException(
+                'The SMTP2GO single sender email "' . $emailAddress . '" is invalid'
+            );
+        }
+
+        $response = $this->client->post('/v3/single_sender_emails/add', [
+            'email_address' => $emailAddress,
+            'subaccount_id' => $subaccountId,
+        ]);
+
+        return [
+            'email_address' => $emailAddress,
+            'request_id' => trim((string) ($response['request_id'] ?? ($response['data']['request_id'] ?? ''))),
+        ];
+    }
+
+    public function removeSingleSenderEmail(string $subaccountId, string $emailAddress): void
+    {
+        $this->client->post('/v3/single_sender_emails/remove', [
+            'email_address' => trim($emailAddress),
+            'subaccount_id' => $this->requireSubaccountId($subaccountId),
+        ]);
+    }
+
+    public function removeSenderDomain(string $subaccountId, string $hostname): void
+    {
+        $this->client->post('/v3/domain/remove', [
+            'domain' => strtolower(rtrim(trim($hostname), '.')),
+            'subaccount_id' => $this->requireSubaccountId($subaccountId),
+        ]);
+    }
+
+    public function removeApiKey(string $subaccountId, string $apiKey): void
+    {
+        $apiKey = trim($apiKey);
+
+        if ($apiKey === '') {
+            throw new Smtp2goException('The SMTP2GO API key to remove is empty');
+        }
+
+        $this->client->post('/v3/api_keys/remove', [
+            'id' => $apiKey,
+            'subaccount_id' => $this->requireSubaccountId($subaccountId),
+        ]);
+    }
+
+    public function closeSubaccount(string $subaccountId): void
+    {
+        $this->client->post('/v3/subaccount/close', [
+            'id' => $this->requireSubaccountId($subaccountId),
+        ]);
+    }
+
+    private function requireSubaccountId(string $subaccountId): string
+    {
+        $subaccountId = trim($subaccountId);
+
+        if ($subaccountId === '') {
+            throw new Smtp2goException('The SMTP2GO sub-account ID is empty');
+        }
+
+        return $subaccountId;
     }
 }

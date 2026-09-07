@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension type="component" version="4.0" method="upgrade">
     <name>com_ra_delivery</name>
-    <creationDate>13 July 2026</creationDate>
+    <creationDate>7 September 2026</creationDate>
     <copyright>2026 Ramblers Tools</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
     <author>Ramblers Tools</author>
     <authorEmail>support@ramblers.tools</authorEmail>
     <authorUrl>https://ramblers.tools</authorUrl>
-    <version>1.0.7</version>
+    <version>1.0.8</version>
     <description>RA Delivery</description>
     <changelogurl>https://raw.githubusercontent.com/Ramblers-Tools/ra-delivery/main/changelog.xml</changelogurl>
     <namespace path="src">Ramblers\Component\Ra_delivery</namespace>

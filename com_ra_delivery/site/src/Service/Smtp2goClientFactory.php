@@ -9,41 +9,47 @@ use Joomla\Database\DatabaseInterface;
 
 class Smtp2goClientFactory
 {
-    private DatabaseInterface $db;
+    private Smtp2goApiSiteRepository $apiSites;
     private ?Smtp2goTransportInterface $transport;
 
     public function __construct(
         ?DatabaseInterface $db = null,
-        ?Smtp2goTransportInterface $transport = null
+        ?Smtp2goTransportInterface $transport = null,
+        ?Smtp2goApiSiteRepository $apiSites = null
     ) {
-        $this->db = $db ?? Factory::getContainer()->get(DatabaseInterface::class);
+        if ($apiSites === null) {
+            $db = $db ?? Factory::getContainer()->get(DatabaseInterface::class);
+            $apiSites = new Smtp2goApiSiteRepository($db);
+        }
+
+        $this->apiSites = $apiSites;
         $this->transport = $transport;
     }
 
     public function createForApiSite(int $apiSiteId): Smtp2goClient
     {
-        if ($apiSiteId < 1) {
-            throw new Smtp2goException('SMTP2GO API site id is missing');
-        }
-
-        $query = $this->db->getQuery(true)
-            ->select([
-                $this->db->quoteName('url'),
-                $this->db->quoteName('token'),
-            ])
-            ->from($this->db->quoteName('#__ra_api_sites'))
-            ->where($this->db->quoteName('id') . ' = ' . $apiSiteId);
-
-        $site = $this->db->setQuery($query)->loadObject();
-
-        if ($site === null) {
-            throw new Smtp2goException('API site ' . $apiSiteId . ' not found');
-        }
+        $site = $this->apiSites->loadEnabled($apiSiteId);
 
         return new Smtp2goClient(
             (string) $site->url,
             (string) $site->token,
             $this->transport
+        );
+    }
+
+    public function replaceApiSiteCredential(
+        int $apiSiteId,
+        string $subaccountName,
+        string $subaccountId,
+        string $apiKey
+    ): void {
+        // The caller must invoke this only after every remote provisioning call
+        // has succeeded, because this replaces the locally held master key.
+        $this->apiSites->replaceCredential(
+            $apiSiteId,
+            $subaccountName,
+            $subaccountId,
+            $apiKey
         );
     }
 }
