@@ -50,17 +50,12 @@ class Smtp2goProvisioningService
         return null;
     }
 
-    public function createSubaccount(string $name, string $email, int $limit): array
+    public function createSubaccount(string $name, int $limit): array
     {
         $name = trim($name);
-        $email = trim($email);
 
         if ($name === '') {
             throw new Smtp2goException('The SMTP2GO sub-account name is empty');
-        }
-
-        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw new Smtp2goException('The SMTP2GO sub-account email is invalid');
         }
 
         if ($limit < 1) {
@@ -69,7 +64,6 @@ class Smtp2goProvisioningService
 
         $response = $this->client->post('/v3/subaccount/add', [
             'fullname' => $name,
-            'subaccount_email' => $email,
             'limit' => $limit,
             'dedicated_ip' => false,
             'archiving' => false,

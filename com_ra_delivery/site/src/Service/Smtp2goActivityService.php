@@ -11,7 +11,7 @@ namespace Ramblers\Component\Ra_delivery\Site\Service;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
+use Joomla\CMS\Component\ComponentHelper;
 
 class Smtp2goActivityService {
 
@@ -63,8 +63,15 @@ class Smtp2goActivityService {
     }
 
     public function send($apiSiteId, $payload) {
-        $app = Factory::getApplication();
-        $payload['sender'] = $app->get('mailfrom');
+        $sender = trim((string) ComponentHelper::getParams('com_ra_delivery')->get('sender_email', ''));
+
+        if ($sender === '') {
+            $this->lastError = 'RA Delivery sender_email is not configured';
+
+            return false;
+        }
+
+        $payload['sender'] = $sender;
 
         try {
             $client = $this->clientFactory->createForApiSite((int) $apiSiteId);

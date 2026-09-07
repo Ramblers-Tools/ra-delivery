@@ -2,6 +2,7 @@
 
 /**
  * Installation script for com_ra_delivery.
+ * 07/09/26 CB Enqueue messages, rather than echo them
  */
 
 \defined('_JEXEC') or die;
@@ -75,21 +76,21 @@ class Com_Ra_deliveryInstallerScript
 
     public function install($parent): bool
     {
-        echo '<p>Installing RA Delivery (com_ra_delivery)</p>';
+        Factory::getApplication()->enqueueMessage( 'Installing RA Delivery (com_ra_delivery)', 'info');
 
         return true;
     }
 
     public function update($parent): bool
     {
-        echo '<p>Updating RA Delivery (com_ra_delivery)</p>';
+        Factory::getApplication()->enqueueMessage( 'Updating RA Delivery (com_ra_delivery)', 'info');
 
         return true;
     }
 
     public function uninstall($parent): bool
     {
-        echo '<p>Uninstalling RA Delivery (com_ra_delivery)</p>';
+        Factory::getApplication()->enqueueMessage( 'Uninstalling RA Delivery (com_ra_delivery)', 'info');
         $versions = $this->getVersions();
 
         if ($versions !== false) {
@@ -104,7 +105,7 @@ class Com_Ra_deliveryInstallerScript
         if ($type === 'uninstall') {
             return true;
         }
-
+        Factory::getApplication()->enqueueMessage( 'RA Delivery: preflight checks', 'info');
         if (version_compare(PHP_VERSION, $this->minimumPHPVersion, '<')) {
             return $this->fail(Text::sprintf('JLIB_INSTALLER_MINIMUM_PHP', $this->minimumPHPVersion));
         }
@@ -148,7 +149,7 @@ class Com_Ra_deliveryInstallerScript
         if ($type === 'uninstall') {
             return true;
         }
-
+        Factory::getApplication()->enqueueMessage( 'RA Delivery: postflight checks', 'info');
         $versions = $this->getVersions();
 
         if ($versions === false) {
@@ -167,7 +168,7 @@ class Com_Ra_deliveryInstallerScript
         ) . '</p>';
         echo '<p>' . $this->buildButton(
             'index.php?option=com_ra_tools&view=dashboard',
-            'Dashboard',
+            'Dashboard', false,
             'granite'
         ) . '</p>';
         echo '<p>' . $this->buildButton(
@@ -181,10 +182,9 @@ class Com_Ra_deliveryInstallerScript
     private function reportVersions(string $label, object $versions): void
     {
         $databaseVersion = $versions->db_version ?: 'not recorded';
-
-        echo '<p>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-        echo ' version ' . htmlspecialchars((string) $versions->component, ENT_QUOTES, 'UTF-8');
-        echo ', database version ' . htmlspecialchars((string) $databaseVersion, ENT_QUOTES, 'UTF-8');
-        echo '</p>';
+        $message = htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+            . ' version ' . htmlspecialchars((string) $versions->component, ENT_QUOTES, 'UTF-8')
+            . ', database version ' . htmlspecialchars((string) $databaseVersion, ENT_QUOTES, 'UTF-8'); 
+        Factory::getApplication()->enqueueMessage($message, 'info');
     }
 }

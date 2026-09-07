@@ -93,10 +93,9 @@ class SmtpHelper {
         }
     }
 
-    public function createSubaccount($name, $email, $limit) {
+    public function createSubaccount($name, $limit) {
         return $this->getProvisioningService()->createSubaccount(
                 (string) $name,
-                (string) $email,
                 (int) $limit
         );
     }
