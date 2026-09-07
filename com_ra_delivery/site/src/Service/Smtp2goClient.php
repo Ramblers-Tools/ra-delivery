@@ -44,7 +44,7 @@ class Smtp2goClient
         }
 
         try {
-            $body = json_encode($payload, JSON_THROW_ON_ERROR);
+            $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\JsonException $exception) {
             throw new Smtp2goException('Unable to encode the SMTP2GO request');
         }
