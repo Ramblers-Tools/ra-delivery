@@ -63,9 +63,16 @@ class Smtp2goActivityService {
     }
 
     public function send($apiSiteId, $payload) {
-        $sender = trim((string) ComponentHelper::getParams('com_ra_delivery')->get('sender_email', ''));
+        $params = ComponentHelper::getParams('com_ra_delivery');
+        $senderEmail = trim((string) $params->get('sender_email', ''));
+        $senderName = trim((string) $params->get('sender_name', ''));
+        $sender = $senderEmail;
 
-        if ($sender === '') {
+        if ($senderEmail !== '' && $senderName !== '') {
+            $sender = $senderName . ' <' . $senderEmail . '>';
+        }
+
+        if ($senderEmail === '') {
             $this->lastError = 'RA Delivery sender_email is not configured';
 
             return false;

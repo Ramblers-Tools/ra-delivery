@@ -17,7 +17,7 @@
             type="text"
             filter="string"
             label="SMTP2GO sub-account name"
-            description="Name validated by Step 7 and awaiting final provisioning in Step 8"
+            description="Not required if using a subaccount-specific API key"
         />
         <field
             name="smtp2go_subaccount_id"
@@ -25,7 +25,7 @@
             filter="string"
             readonly="true"
             label="SMTP2GO sub-account ID"
-            description="Provider ID saved after successful provisioning in Step 8"
+            description="Provider ID: Not required if using a subaccount-specific API key"
         />
         <field
             name="smtp2go_sender_registration"
@@ -46,7 +46,16 @@
             label="Sending user"
             description="Email address to be used as Sender"
             hint="aaaa@ramblers.tools"
-    />
+        />        
+        <field name="sender_name"
+            maxlength="80"
+            filter="wors"
+            type="text"
+            required="true"
+            label="Name to be used for the sender"
+            description="This will appear on the malshhot as the sender"
+            hint="Group MailMan"
+        />
     </fieldset>
     <fieldset name="phase1" label="Polling for email delivery details">
         <field 

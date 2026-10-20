@@ -21,6 +21,10 @@ class Smtp2goProvisioningService
             throw new Smtp2goException('The SMTP2GO sub-account name is empty');
         }
 
+        if (strlen($name) > 100 || !preg_match("/^[A-Za-z0-9][A-Za-z0-9 ._()&'\\-]*$/", $name)) {
+            throw new Smtp2goException('The SMTP2GO sub-account name contains unsupported characters or is too long');
+        }
+
         $response = $this->client->post('/v3/subaccounts/search', [
             'fuzzy_search' => false,
             'search_terms' => [$name],
