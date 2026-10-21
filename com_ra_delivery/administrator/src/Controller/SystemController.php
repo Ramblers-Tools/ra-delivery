@@ -24,10 +24,8 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\Input\Input;
 use Ramblers\Component\Ra_mailman\Site\Helpers\Mailhelper;
 use Ramblers\Component\Ra_mailman\Site\Helpers\SubscriptionHelper;
-//use Ramblers\Component\Ra_mailman\Site\Helpers\UserHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\SchemaHelper;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
-use Ramblers\Component\Ra_tools\Site\Helpers\UserHelper;
 
 class SystemController extends FormController {
 

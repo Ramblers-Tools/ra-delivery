@@ -426,8 +426,15 @@ class SmtpHelper {
             return false;
         }
 
+        $senderEmail = trim((string) $params->get('sender_email', ''));
+        $senderName = trim((string) $params->get('sender_name', ''));
+        $sender = $senderEmail;
+        if ($senderEmail !== '' && $senderName !== '') {
+            $sender = $senderName . ' <' . $senderEmail . '>';
+        }
+
         $payload = [
-            'sender' => $reply_to,
+            'sender' => $sender,
             'to' => (array) $to,
             'subject' => $subject,
             'html_body' => $message,
