@@ -1,15 +1,12 @@
 <?php
 
 /**
- * @version     1.0.6
- * @package     com_ra_members
- * @copyright   Copyright (C) 2020. All rights reserved.
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
- * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
  * 15/06/26 CB send email
  * 23/06/26 CB Don't send blank report
  * 02/07/26 CB email report as table
- * 06/07/26 CB Renamed; apply subdomain filter on the API call, not after the fact
+ * 06/07/26 CB Renamed; apply sub-account filter on the API call, not after the fact
+ * 13/07/26 CN fix email report table
+ * 07/09/26 CB Added sender domain registration error handling
  */
 
 namespace Ramblers\Component\Ra_delivery\Site\Helper;
@@ -20,6 +17,9 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Factory;
 use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goActivityService;
+use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goClientFactory;
+use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goException;
+use Ramblers\Component\Ra_delivery\Site\Service\Smtp2goProvisioningService;
 use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
 
 class SmtpHelper {
@@ -38,19 +38,157 @@ class SmtpHelper {
     private $error_count = 0;
     private $messages = array();
     private $notify_user = '';
+    private $notify_user_id = 0;
     private $service;
+    private $clientFactory;
     private $toolsHelper;
 
-    public function __construct() {
+    public function __construct(
+            ?Smtp2goActivityService $service = null,
+            ?Smtp2goClientFactory $clientFactory = null
+    ) {
         $this->db = Factory::getDbo();
         $this->toolsHelper = new ToolsHelper();
-        $this->service = new Smtp2goActivityService();
+        $this->clientFactory = $clientFactory ?? new Smtp2goClientFactory();
+        $this->service = $service ?? new Smtp2goActivityService($this->clientFactory);
+    }
+
+    private function getConfiguredApiSiteId() {
+        $params = ComponentHelper::getParams('com_ra_delivery');
+        $apiSiteId = (int) $params->get('smtp2go_api_site_id', 0);
+
+        if ($apiSiteId < 1) {
+            throw new Smtp2goException('SMTP2GO API site id is not configured');
+        }
+
+        return $apiSiteId;
+    }
+
+    private function getProvisioningService() {
+        $client = $this->clientFactory->createForApiSite($this->getConfiguredApiSiteId());
+
+        return new Smtp2goProvisioningService($client);
+    }
+
+    public function validateConfiguredApiSite() {
+        // Creating the client validates the configured row and master credential
+        // without making a remote request.
+        $this->clientFactory->createForApiSite($this->getConfiguredApiSiteId());
+    }
+
+    public function findSubaccount($name) {
+        $apiSiteId = $this->getConfiguredApiSiteId();
+
+        try {
+            $client = $this->clientFactory->createForApiSite($apiSiteId);
+
+            return (new Smtp2goProvisioningService($client))->findSubaccount((string) $name);
+        } catch (Smtp2goException $e) {
+            throw new Smtp2goException(
+                    'SMTP2GO API-site record ' . $apiSiteId . ': ' . $e->getMessage(),
+                    $e->getHttpStatus(),
+                    $e->getProviderCode(),
+                    $e->getRequestId()
+            );
+        }
+    }
+
+    public function createSubaccount($name, $limit) {
+        return $this->getProvisioningService()->createSubaccount(
+                (string) $name,
+                (int) $limit
+        );
+    }
+
+    public function createSubaccountApiKey($subaccountId, $description) {
+        return $this->getProvisioningService()->createApiKey(
+                (string) $subaccountId,
+                (string) $description
+        );
+    }
+
+    public function registerSenderDomain($subaccountId, $hostname) {
+        $apiSiteId = $this->getConfiguredApiSiteId();
+        $hostname = (string) $hostname;
+
+        try {
+            $client = $this->clientFactory->createForApiSite($apiSiteId);
+
+            return (new Smtp2goProvisioningService($client))->registerSenderDomain(
+                    (string) $subaccountId,
+                    $hostname
+            );
+        } catch (Smtp2goException $e) {
+            throw new Smtp2goException(
+                    'Unable to register SMTP2GO sender domain "' . $hostname
+                        . '" using API-site record ' . $apiSiteId . ': ' . $e->getMessage(),
+                    $e->getHttpStatus(),
+                    $e->getProviderCode(),
+                    $e->getRequestId()
+            );
+        }
+    }
+
+    public function registerSingleSenderEmail($subaccountId, $emailAddress) {
+        $apiSiteId = $this->getConfiguredApiSiteId();
+        $emailAddress = (string) $emailAddress;
+
+        try {
+            $client = $this->clientFactory->createForApiSite($apiSiteId);
+
+            return (new Smtp2goProvisioningService($client))->registerSingleSenderEmail(
+                    (string) $subaccountId,
+                    $emailAddress
+            );
+        } catch (Smtp2goException $e) {
+            throw new Smtp2goException(
+                    'Unable to register SMTP2GO single sender email "' . $emailAddress
+                        . '" using API-site record ' . $apiSiteId . ': ' . $e->getMessage(),
+                    $e->getHttpStatus(),
+                    $e->getProviderCode(),
+                    $e->getRequestId()
+            );
+        }
+    }
+
+    public function removeSingleSenderEmail($subaccountId, $emailAddress) {
+        $this->getProvisioningService()->removeSingleSenderEmail(
+                (string) $subaccountId,
+                (string) $emailAddress
+        );
+    }
+
+    public function removeSenderDomain($subaccountId, $hostname) {
+        $this->getProvisioningService()->removeSenderDomain(
+                (string) $subaccountId,
+                (string) $hostname
+        );
+    }
+
+    public function removeSubaccountApiKey($subaccountId, $apiKey) {
+        $this->getProvisioningService()->removeApiKey(
+                (string) $subaccountId,
+                (string) $apiKey
+        );
+    }
+
+    public function closeSubaccount($subaccountId) {
+        $this->getProvisioningService()->closeSubaccount((string) $subaccountId);
+    }
+
+    public function replaceApiSiteCredential($subaccountName, $subaccountId, $apiKey) {
+        $this->clientFactory->replaceApiSiteCredential(
+                $this->getConfiguredApiSiteId(),
+                (string) $subaccountName,
+                (string) $subaccountId,
+                (string) $apiKey
+        );
     }
 
     private function actionBounce($event) {
         $email = $event["recipient"];
         $details = '<tr>';
-        $details = '<td>' . HTMLHelper::_('date', $event["date"], 'D d/m/y H:i') . '</td>';
+        $details .= '<td>' . HTMLHelper::_('date', $event["date"], 'D d/m/y H:i') . '</td>';
         $reason = $event["event"];
         $details .= '<td>' . $reason . '</td>';
         $details .= '<td>' . $event['sender'] . '</td>';
@@ -72,7 +210,7 @@ class SmtpHelper {
             $details .= 'No user found';
         }
         $details .= '</td>';
-        $details = '</tr>';
+        $details .= '</tr>';
         $this->email .= $details;
     }
 
@@ -92,16 +230,6 @@ class SmtpHelper {
         return gmdate('Y-m-d\TH:i:s\Z', $timestamp - ($lookbackMinutes * 60));
     }
 
-    private function filterEventsBySubdomain(array $events, $subdomainFilter) {
-        if ($subdomainFilter === '') {
-            return $events;
-        }
-
-        return array_values(array_filter($events, function ($event) use ($subdomainFilter) {
-                    return $this->matchesSubdomainFilter($event, $subdomainFilter);
-                }));
-    }
-
     public function getMessages() {
         return $this->messages;
     }
@@ -119,16 +247,6 @@ class SmtpHelper {
 
     private function logMessage($message, $ref = '0') {
         $this->toolsHelper->createLog(self::LOG_SUB_SYSTEM, self::LOG_RECORD_TYPE, $ref, $message);
-    }
-
-    private function matchesSubdomainFilter(array $event, $subdomainFilter) {
-        if ($subdomainFilter === '') {
-            return true;
-        }
-
-        $sender = strtolower(trim((string) ($event['sender'] ?? '')));
-
-        return $sender !== '' && strpos($sender, $subdomainFilter) !== false;
     }
 
     private function normaliseConfiguredEventTypes($value) {
@@ -155,8 +273,31 @@ class SmtpHelper {
         return gmdate('Y-m-d H:i:s', $timestamp);
     }
 
-    private function normaliseSubdomainFilter($value) {
-        return strtolower(trim((string) $value));
+    private function normaliseSubaccountFilter($value) {
+        return trim((string) $value);
+    }
+
+    private function resolveNotificationEmail($userId) {
+        $userId = (int) $userId;
+
+        if ($userId < 1) {
+            return '';
+        }
+
+        $query = $this->db->getQuery(true)
+                ->select($this->db->quoteName('email'))
+                ->from($this->db->quoteName('#__users'))
+                ->where($this->db->quoteName('id') . ' = ' . $userId)
+                ->where($this->db->quoteName('block') . ' = 0');
+        $email = trim((string) $this->db->setQuery($query)->loadResult());
+
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            $this->messages[] = 'Notification user ' . $userId
+                    . ' is missing, disabled, or does not have a valid email address; no email will be sent';
+            return '';
+        }
+
+        return $email;
     }
 
     public function pollConfiguredEvents() {
@@ -177,9 +318,10 @@ class SmtpHelper {
         $eventTypes = $this->normaliseConfiguredEventTypes($params->get('event_types'));
         $lookbackMinutes = max(0, (int) $params->get('lookback_minutes', 10));
         $pageLimit = min(1000, max(1, (int) $params->get('page_limit', 250)));
-        $subdomainFilter = $this->normaliseSubdomainFilter($params->get('subdomain'));
+        $subaccountFilter = $this->normaliseSubaccountFilter($params->get('smtp2go_subaccount_id'));
         $tidyUpDays = max(0, (int) $params->get('tidy_up_days', 30));
-        $this->notify_user = trim((string) $params->get('notify_user', ''));
+        $this->notify_user_id = (int) $params->get('notify_user', 0);
+        $this->notify_user = '';
 
         $startDate = $this->calculateStartDate($lookbackMinutes);
         $endDate = gmdate('Y-m-d\TH:i:s\Z');
@@ -189,17 +331,17 @@ class SmtpHelper {
 
         $this->messages[] = 'Polling SMTP2GO activity from ' . $startDate . ' to ' . $endDate;
         $this->logMessage('Starting activity poll from ' . $startDate . ' to ' . $endDate . ' for api site ' . $apiSiteId, (string) $apiSiteId);
-        if ($this->notify_user == '') {
-            $this->messages[] = 'No notification email address configured; no email will be sent';
+        if ($this->notify_user_id < 1) {
+            $this->messages[] = 'No notification user is configured; no email will be sent';
         } else {
-            $this->messages[] = 'Notification email will be sent to ' . $this->notify_user;
+            $this->messages[] = 'Delivery-exception notification user ID: ' . $this->notify_user_id;
         }
-        if ($subdomainFilter !== '') {
-            $this->messages[] = 'Applying sender subdomain filter: ' . $subdomainFilter;
+        if ($subaccountFilter !== '') {
+            $this->messages[] = 'Applying SMTP2GO sub-account ID filter: ' . $subaccountFilter;
         }
 
         do {
-            $subaccounts = ($subdomainFilter !== '') ? [$subdomainFilter] : [];
+            $subaccounts = ($subaccountFilter !== '') ? [$subaccountFilter] : [];
             $result = $this->service->searchActivity($apiSiteId, $startDate, $endDate, $eventTypes, $pageLimit, $continueToken, $subaccounts);
 
             if ($result === false) {
@@ -219,7 +361,7 @@ class SmtpHelper {
                     (string) $apiSiteId
             );
             foreach ($events as $event) {
-                if ($this->notify_user !== '') {
+                if ($this->notify_user_id > 0) {
                     $this->actionBounce($event);
                 }
                 $storeResult = $this->storeEvent($apiSiteId, $event);
@@ -241,9 +383,16 @@ class SmtpHelper {
             $this->logMessage('Polling completed with ' . $stats['failed'] . ' storage failures; watermark not advanced', (string) $apiSiteId);
             return false;
         }
-        if (($this->count > 0) AND ($this->notify_user !== '')) {
-            $this->messages[] = 'Email sent to ' . $this->notify_user;
-            $this->sendReport();
+        if ($this->count > 0 && $this->notify_user_id > 0) {
+            // Resolve the Joomla user again immediately before notification so
+            // address changes and account disabling take effect without a
+            // configuration update.
+            $this->notify_user = $this->resolveNotificationEmail($this->notify_user_id);
+
+            if ($this->notify_user !== '') {
+                $this->sendReport();
+                $this->messages[] = 'Email sent to ' . $this->notify_user;
+            }
         }
         $this->storeWatermark($endDate);
         if ($tidyUpDays > 0) {
@@ -277,8 +426,15 @@ class SmtpHelper {
             return false;
         }
 
+        $senderEmail = trim((string) $params->get('sender_email', ''));
+        $senderName = trim((string) $params->get('sender_name', ''));
+        $sender = $senderEmail;
+        if ($senderEmail !== '' && $senderName !== '') {
+            $sender = $senderName . ' <' . $senderEmail . '>';
+        }
+
         $payload = [
-            'sender' => $reply_to,
+            'sender' => $sender,
             'to' => (array) $to,
             'subject' => $subject,
             'html_body' => $message,
@@ -438,7 +594,7 @@ class SmtpHelper {
         $eventTypes = $this->normaliseConfiguredEventTypes($params->get('event_types'));
         $lookbackMinutes = max(0, (int) $params->get('lookback_minutes', 10));
         $pageLimit = min(1000, max(1, (int) $params->get('page_limit', 250)));
-        $subdomainFilter = $this->normaliseSubdomainFilter($params->get('subdomain'));
+        $subaccountFilter = $this->normaliseSubaccountFilter($params->get('smtp2go_subaccount_id'));
 
         if ($apiSiteId <= 0) {
             $this->messages[] = 'API site id is missing';
@@ -449,7 +605,7 @@ class SmtpHelper {
         $endDate = gmdate('Y-m-d\TH:i:s\Z');
         $this->messages[] = 'Testing SMTP2GO activity for site ' . $apiSiteId . ' from ' . $startDate . ' to ' . $endDate;
 
-        $subaccounts = ($subdomainFilter !== '') ? [$subdomainFilter] : [];
+        $subaccounts = ($subaccountFilter !== '') ? [$subaccountFilter] : [];
         $result = $this->service->searchActivity($apiSiteId, $startDate, $endDate, $eventTypes, $pageLimit, '', $subaccounts);
 
         if ($result === false) {
@@ -461,8 +617,8 @@ class SmtpHelper {
         $this->messages[] = 'Request ' . ($result['request_id'] !== '' ? $result['request_id'] : 'n/a')
                 . ' returned ' . count($events) . ' events';
 
-        if ($subdomainFilter !== '') {
-            $this->messages[] = 'Applied sender subdomain filter: ' . $subdomainFilter;
+        if ($subaccountFilter !== '') {
+            $this->messages[] = 'Applied SMTP2GO sub-account ID filter: ' . $subaccountFilter;
         }
 
         return array(

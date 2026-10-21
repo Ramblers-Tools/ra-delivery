@@ -1,21 +1,25 @@
 <?php
-
+/**
+ * @version     1.0.6
+ * @package     com_ra_delivery
+ * @copyright   Copyright (C) 2020. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @author      Charlie <webmaster@bigley.me.uk> - https://www.stokeandnewcastleramblers.org.uk
+ * 06/07/26 CB Support sending of emails with Smtp2go API, using the new com_ra_delivery component
+ */
 namespace Ramblers\Component\Ra_delivery\Site\Service;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
-use Ramblers\Component\Ra_tools\Site\Helpers\ToolsHelper;
+use Joomla\CMS\Component\ComponentHelper;
 
 class Smtp2goActivityService {
 
-    private $db;
+    private $clientFactory;
     private $lastError = '';
-    private $toolsHelper;
 
-    public function __construct() {
-        $this->db = Factory::getDbo();
-        $this->toolsHelper = new ToolsHelper();
+    public function __construct(?Smtp2goClientFactory $clientFactory = null) {
+        $this->clientFactory = $clientFactory ?? new Smtp2goClientFactory();
     }
 
     public function getLastError() {
@@ -28,13 +32,6 @@ class Smtp2goActivityService {
      */
 
     public function searchActivity($apiSiteId, $startDate, $endDate, array $eventTypes, $limit, $continueToken = '', $subaccounts = []) {
-        $site = $this->loadApiSite((int) $apiSiteId);
-
-        if ($site === null) {
-            $this->lastError = 'API site ' . $apiSiteId . ' not found';
-            return false;
-        }
-
         $payload = array(
             'start_date' => $startDate,
             'end_date' => $endDate,
@@ -50,19 +47,11 @@ class Smtp2goActivityService {
             $payload['subaccounts'] = $subaccounts;
         }
 
-        $headers = array(
-            'Accept: application/json',
-            'Content-Type: application/json',
-            'X-Smtp2go-Api-Key: ' . trim((string) $site->token),
-        );
-
-        $endpoint = rtrim((string) $site->url, '/') . '/v3/activity/search';
-//        if (1) {
-//            $endpoint .= '?subdomain=walsall';
-//        }
-        $response = $this->postJson($endpoint, $headers, $payload);
-
-        if ($response === false) {
+        try {
+            $client = $this->clientFactory->createForApiSite((int) $apiSiteId);
+            $response = $client->post('/v3/activity/search', $payload);
+        } catch (Smtp2goException $exception) {
+            $this->lastError = $exception->getMessage();
             return false;
         }
 
@@ -73,99 +62,29 @@ class Smtp2goActivityService {
         );
     }
 
-    private function loadApiSite($apiSiteId) {
-        $query = $this->db->getQuery(true)
-                ->select('*')
-                ->from($this->db->quoteName('#__ra_api_sites'))
-                ->where($this->db->quoteName('id') . ' = ' . (int) $apiSiteId);
-
-        $this->db->setQuery($query);
-
-        return $this->db->loadObject();
-    }
-
-    private function postJson($url, array $headers, array $payload) {
-        $body = json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE);
-
-        if ($body === false) {
-            $this->lastError = 'Failed to encode request payload as JSON: ' . json_last_error_msg();
-            return false;
-        }
-
-        $max = 5 * 60;
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_HEADER => false,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => 'utf-8',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_CONNECTTIMEOUT => $max,
-            CURLOPT_TIMEOUT => $max,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2TLS,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $body,
-            CURLOPT_HTTPHEADER => $headers,
-        ));
-
-        $responseData = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error = curl_error($curl);
-        curl_close($curl);
-
-        if ($responseData === false || $httpCode !== 200) {
-            $responseSummary = '';
-
-            if (is_string($responseData) && trim($responseData) !== '') {
-                $decodedError = json_decode($responseData, true);
-
-                if (is_array($decodedError)) {
-                    $requestId = (string) ($decodedError['request_id'] ?? '');
-                    $errorMessage = (string) ($decodedError['data']['error'] ?? '');
-                    $errorCode = (string) ($decodedError['data']['error_code'] ?? '');
-                    $responseSummary = trim($requestId . ' ' . $errorCode . ' ' . $errorMessage);
-                } else {
-                    $responseSummary = trim(substr($responseData, 0, 300));
-                }
-            }
-
-            $this->lastError = 'HTTP ' . $httpCode . ': ' . $error
-                    . ($responseSummary !== '' ? ' | ' . $responseSummary : '');
-            return false;
-        }
-
-        $decoded = json_decode($responseData, true);
-
-        if (!is_array($decoded)) {
-            $this->lastError = 'JSON decode failed';
-            return false;
-        }
-
-        return $decoded;
-    }
-
     public function send($apiSiteId, $payload) {
-        $site = $this->loadApiSite((int) $apiSiteId);
+        $params = ComponentHelper::getParams('com_ra_delivery');
+        $senderEmail = trim((string) $params->get('sender_email', ''));
+        $senderName = trim((string) $params->get('sender_name', ''));
+        $sender = $senderEmail;
 
-        if ($site === null) {
-            $this->lastError = 'API site ' . $apiSiteId . ' not found';
+        if ($senderEmail !== '' && $senderName !== '') {
+            $sender = $senderName . ' <' . $senderEmail . '>';
+        }
+
+        if ($senderEmail === '') {
+            $this->lastError = 'RA Delivery sender_email is not configured';
+
             return false;
         }
 
-        $app = Factory::getApplication();
-        $payload['sender'] = $app->get('mailfrom');
+        $payload['sender'] = $sender;
 
-        $headers = array(
-            'Accept: application/json',
-            'Content-Type: application/json',
-            'X-Smtp2go-Api-Key: ' . trim((string) $site->token),
-        );
-
-        $endpoint = rtrim((string) $site->url, '/') . '/v3/email/send';
-        $response = $this->postJson($endpoint, $headers, $payload);
-
-        if ($response === false) {
+        try {
+            $client = $this->clientFactory->createForApiSite((int) $apiSiteId);
+            $response = $client->post('/v3/email/send', $payload);
+        } catch (Smtp2goException $exception) {
+            $this->lastError = $exception->getMessage();
             return false;
         }
 
