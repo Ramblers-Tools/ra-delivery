@@ -3,6 +3,18 @@
     <changelog>
         <element>pkg_ra_delivery</element>
         <type>package</type>
+        <version>1.0.16</version>
+        <note>
+            <item><![CDATA[Mailshots can show a friendly sender name, set in the component options]]></item>
+            <item><![CDATA[New SMTP2GO API client and subaccount provisioning services]]></item>
+            <item><![CDATA[Subaccount-specific SMTP2GO API keys no longer need a separate subaccount name or provider ID]]></item>
+            <item><![CDATA[Integration with RA Setup]]></item>
+            <item><![CDATA[Fixed the date column in the SMTP2GO activity report]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_ra_delivery</element>
+        <type>package</type>
         <version>1.0.8</version>
         <note>
             <item><![CDATA[Standardised author, licence and version metadata to match ra_tools]]></item>

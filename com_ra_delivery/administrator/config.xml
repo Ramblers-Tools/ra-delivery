@@ -49,11 +49,11 @@
         />        
         <field name="sender_name"
             maxlength="80"
-            filter="wors"
+            filter="string"
             type="text"
             required="true"
             label="Name to be used for the sender"
-            description="This will appear on the malshhot as the sender"
+            description="This will appear on the mailshot as the sender"
             hint="Group MailMan"
         />
     </fieldset>
